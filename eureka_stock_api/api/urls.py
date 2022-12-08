@@ -5,6 +5,7 @@ from api import views
 
 
 urlpatterns = [
+    path('register/', views.UserView.as_view()),
     path('api-token-auth/', auth_views.obtain_auth_token),
     path('hello/', views.hello_world),
 ]
