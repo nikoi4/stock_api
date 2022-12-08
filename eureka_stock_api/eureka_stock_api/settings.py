@@ -102,6 +102,10 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# DJANGO REST FRAMEWORK
+REST_FRAMEWORK = {
+    'TEST_REQUEST_DEFAULT_FORMAT': 'json',
+}
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.0/topics/i18n/

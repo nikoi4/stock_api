@@ -1,5 +1,6 @@
-django
-djangorestframework
-pyyaml
+django==4.1.4
+djangorestframework==3.14.0
 requests
 django-cors-headers
+pytest-django
+pytest-pythonpath
