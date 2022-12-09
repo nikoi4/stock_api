@@ -1,29 +1,18 @@
 from django.contrib.auth.models import User
 from rest_framework import generics, status
-from rest_framework.authentication import (
-    TokenAuthentication,
-    BasicAuthentication
-)
 from rest_framework.authtoken.models import Token
-from rest_framework.decorators import (
-    api_view,
-    authentication_classes,
-    permission_classes,
-)
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
 from api import serializers
 
 
-@api_view(["GET"])
-@authentication_classes([TokenAuthentication, BasicAuthentication])
-@permission_classes([IsAuthenticated])
-def hello_world(request, *args, **kwargs):
-    return Response({"message": "Hello world"})
-
-
 class UserView(generics.CreateAPIView):
-    # queryset = User.objects.all()
+    """
+    View to Register a new user in the system assigning
+    the user an api token
+
+    * Any user can access this endpoint
+    """
+
     serializer_class = serializers.UserSerializer
 
     def create(self, request, *args, **kwargs):
