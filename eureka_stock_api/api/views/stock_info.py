@@ -4,6 +4,7 @@ from rest_framework.authentication import (
 )
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.throttling import UserRateThrottle
 from rest_framework.views import APIView
 
 from api.utils.integrations.alphavantage import get_alphavantage_api_response
@@ -19,6 +20,7 @@ class StockInfo(APIView):
 
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
+    throttle_classes = [UserRateThrottle]
 
     def get(self, request, stock_symbol):
         function = 'TIME_SERIES_DAILY_ADJUSTED'

@@ -2,6 +2,7 @@ from django.contrib.auth.models import User
 from rest_framework import generics, status
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle
 from api import serializers
 
 
@@ -14,6 +15,7 @@ class UserView(generics.CreateAPIView):
     """
 
     serializer_class = serializers.UserSerializer
+    throttle_classes = [AnonRateThrottle]
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

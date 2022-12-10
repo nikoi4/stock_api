@@ -106,6 +106,10 @@ AUTH_PASSWORD_VALIDATORS = [
 # DJANGO REST FRAMEWORK
 REST_FRAMEWORK = {
     'TEST_REQUEST_DEFAULT_FORMAT': 'json',
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '3/min',
+        'user': '5/min'
+    }
 }
 
 # Internationalization
