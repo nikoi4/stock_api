@@ -1,5 +1,4 @@
-import requests
-
+from rest_framework import status
 from rest_framework.authentication import (
     TokenAuthentication,
 )
@@ -7,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
+from api.utils.integrations.alphavantage import get_alphavantage_api_response
 from eureka_stock_api import settings
 
 
@@ -25,36 +25,22 @@ class StockInfo(APIView):
         size = 'compact'
         api_key = settings.ALPHAVANTAGE_API_TOKEN
 
-        response = self.get_alphavantage_api_response(
+        alphavantage_response = get_alphavantage_api_response(
             function,
-            stock_symbol,
-            size,
-            api_key
-        )
-        if response.status_code == 200:
-            data = self.process_stock_timeseries(response.json())
-            return Response(data=data, status=200)
-
-        return Response(
-            response.json(),
-            status=response.status_code
-        )
-
-    def get_alphavantage_api_response(
-            self,
-            function,
-            stock_symbol,
-            size,
-            api_key
-    ):
-        endpoint = 'https://www.alphavantage.co/query'
-        query_params = '?function={}&symbol={}&outputsize={}&apikey={}'.format(
-            function,
-            stock_symbol,
-            size,
             api_key,
+            size,
+            stock_symbol,
         )
-        return requests.get('{}{}'.format(endpoint, query_params))
+        alphavantage_response_data = alphavantage_response.json()
+
+        if 'error' in str(alphavantage_response_data).lower():
+            return Response(
+                alphavantage_response.json(),
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        processed_data = self.process_stock_timeseries(alphavantage_response.json())
+        return Response(data=processed_data, status=status.HTTP_200_OK)
 
     def process_stock_timeseries(self, data):
         daily_stock_info = data.get('Time Series (Daily)', {})

@@ -7,5 +7,9 @@ from api import views
 urlpatterns = [
     path('register/', views.UserView.as_view()),
     path('api-token-auth/', auth_views.obtain_auth_token),
-    path('stock_info/<str:stock_symbol>', views.StockInfo.as_view()),
+    path(
+        'stock_info/<str:stock_symbol>',
+        views.StockInfo.as_view(),
+        name='stock-info'
+    ),
 ]
