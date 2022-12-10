@@ -1,147 +1,107 @@
-import pytest
+import requests
+from unittest.mock import patch
 
 from django.contrib.auth.models import User
-from rest_framework.authtoken import views as auth_views
-from rest_framework.authtoken.models import Token
-from rest_framework.test import APIRequestFactory
-
-from api.views import UserView
+from rest_framework import status
+from rest_framework.test import APITestCase
 
 
-BASE_API_URL = 'api/v1/'
+BASE_API_URL = '/api/v1/'
 
 
-@pytest.mark.django_db
-def test_post_register_returns_api_token():
-    # using only required fields
-    view = UserView.as_view()
-    new_user = {
-        'username': 'foo',
-        'email': 'foo@bar.com',
-        'password': 'very_secret_password',
+class StockInfoTests(APITestCase):
 
-    }
-    factory = APIRequestFactory()
-    request = factory.post(
-        '{}register/'.format(BASE_API_URL),
-        new_user,
-        format='json'
-    )
-    response = view(request)
+    def setUp(self):
+        self.user = User.objects.create_user({
+            'username': 'foo',
+            'password': 'bar',
+        })
+        self.endpoint = '{}stock_info/'.format(BASE_API_URL)
+        self.client.force_authenticate(user=self.user)
 
-    assert response.data.get('token')
-    assert response.status_code == 201
+    @patch('requests.models.Response.json')
+    @patch('api.views.stock_info.get_alphavantage_api_response')
+    def test_get_stock_info_is_valid(self, alphavantage_api_mock, mock_response_json):
+        alphavantage_response = requests.models.Response()
+        alphavantage_response.status_code = status.HTTP_200_OK
+        alphavantage_api_mock.return_value = alphavantage_response
+        mock_response_json.return_value = {
+            'Meta Data': {
+                '1. Information': 'Daily Time Series with Splits and Dividend Events',
+                '2. Symbol': 'meta',
+                '3. Last Refreshed': '2022-12-09',
+                '4. Output Size': 'Compact',
+                '5. Time Zone': 'US/Eastern'
+            },
+            'Time Series (Daily)': {
+                '2022-12-08': {
+                    '1. open': '116.39',
+                    '2. high': '117.34',
+                    '3. low': '114.59',
+                    '4. close': '115.33',
+                    '5. adjusted close': '115.33',
+                    '6. volume': '30619418',
+                    '7. dividend amount': '0.0000',
+                    '8. split coefficient': '1.0'
+                },
+                '2022-12-07': {
+                    '1. open': '113.76',
+                    '2. high': '115.88',
+                    '3. low': '112.88',
+                    '4. close': '113.93',
+                    '5. adjusted close': '113.93',
+                    '6. volume': '29461137',
+                    '7. dividend amount': '0.0000',
+                    '8. split coefficient': '1.0'
+                },
+                '2022-12-09': {
+                    '1. open': '115.3',
+                    '2. high': '117.54',
+                    '3. low': '113.87',
+                    '4. close': '115.9',
+                    '5. adjusted close': '115.9',
+                    '6. volume': '26033353',
+                    '7. dividend amount': '0.0000',
+                    '8. split coefficient': '1.0'
+                }
+            }
+        }
+        # using only required fields
+        endpoint = '{}meta'.format(self.endpoint)
+        # force_authenticate(request, user=self.user)
+        response = self.client.get(endpoint)
 
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {
+            'higher_price': '117.54',
+            'lower_price': '113.87',
+            'open_price': '115.3',
+            'variation': '0.49'
+        }
 
-@pytest.mark.django_db
-def test_invalid_email_post_register():
-    # using only required fields
-    view = UserView.as_view()
-    new_user = {
-        'username': 'foo',
-        'email': 'foobar',
-        'password': 'very_secret_password',
+    def test_get_stock_info_is_not_authorized(self):
+        self.client.force_authenticate()
+        # using only required fields
+        endpoint = '{}meta'.format(self.endpoint)
+        # force_authenticate(request, user=self.user)
+        response = self.client.get(endpoint)
 
-    }
-    factory = APIRequestFactory()
-    request = factory.post(
-        '{}register/'.format(BASE_API_URL),
-        new_user,
-        format='json'
-    )
-    response = view(request)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.data.get('detail').code == 'not_authenticated'
 
-    assert response.exception is True
-    assert response.data.get('email', [])[0].code == 'invalid'
-    assert response.status_code == 400
+    @patch('requests.models.Response.json')
+    @patch('api.views.stock_info.get_alphavantage_api_response')
+    def test_get_stock_info_is_not_valid(self, alphavantage_api_mock, mock_response_json):
+        alphavantage_response = requests.models.Response()
+        alphavantage_response.status_code = status.HTTP_200_OK
+        alphavantage_api_mock.return_value = alphavantage_response
+        mock_response_json.return_value = {
+            'Error Message': 'Invalid API call. Please retry or visit the documentation (https://www.alphavantage.co/documentation/) for TIME_SERIES_DAILY_ADJUSTED.'
+        }
+        # using only required fields
+        endpoint = '{}meta'.format(self.endpoint)
+        # force_authenticate(request, user=self.user)
+        response = self.client.get(endpoint)
 
-
-@pytest.mark.django_db
-def test_invalid_method_get_register():
-    # using only required fields
-    view = UserView.as_view()
-    new_user = {
-        'username': 'foo',
-        'email': 'foobar',
-        'password': 'very_secret_password',
-
-    }
-    factory = APIRequestFactory()
-    request = factory.get(
-        '{}register/'.format(BASE_API_URL),
-        new_user,
-        format='json'
-    )
-    response = view(request)
-
-    assert response.exception is True
-    assert response.data.get('detail').code == 'method_not_allowed'
-    assert response.status_code == 405
-
-
-@pytest.mark.django_db
-def test_post_retrieve_api_token_for_existing_user():
-    # using only required fields
-    view_function = auth_views.obtain_auth_token
-    existing_user = {
-        'username': 'foo',
-        'email': 'foo@bar.com',
-        'password': 'very_secret_password',
-    }
-    user = User.objects.create_user(**existing_user)
-    token = Token.objects.create(user=user)
-
-    factory = APIRequestFactory()
-    request = factory.post(
-        '{}api-token-auth/'.format(BASE_API_URL),
-        existing_user,
-        format='json'
-    )
-    response = view_function(request)
-
-    assert response.data.get('token') == str(token)
-    assert response.status_code == 200
-
-
-@pytest.mark.django_db
-def test_invalid_user_retrieve_api_token_for_non_existing_user():
-    # using only required fields
-    view_function = auth_views.obtain_auth_token
-    non_existing_user = {
-        'username': 'bar',
-        'password': 'not_very_secret',
-    }
-
-    factory = APIRequestFactory()
-    request = factory.post(
-        '{}api-token-auth/'.format(BASE_API_URL),
-        non_existing_user,
-        format='json'
-    )
-    response = view_function(request)
-
-    assert response.exception is True
-    assert response.data.get('non_field_errors', [])[0].code == 'authorization'
-    assert response.status_code == 400
-
-
-@pytest.mark.django_db
-def test_invalid_method_get_retrieve_api_token_returns_error():
-    # using only required fields
-    view_function = auth_views.obtain_auth_token
-    non_existing_user = {
-        'username': 'bar',
-        'password': 'not_very_secret',
-    }
-
-    factory = APIRequestFactory()
-    request = factory.get(
-        '{}api-token-auth/'.format(BASE_API_URL),
-        non_existing_user,
-        format='json'
-    )
-    response = view_function(request)
-
-    assert response.exception is True
-    assert response.data.get('detail').code == 'method_not_allowed'
-    assert response.status_code == 405
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data == mock_response_json.return_value
