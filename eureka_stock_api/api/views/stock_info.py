@@ -78,7 +78,7 @@ class StockInfo(APIView):
             'open_price': last_stock_day.get('1. open', ''),
             'higher_price': last_stock_day.get('2. high', ''),
             'lower_price': last_stock_day.get('3. low', ''),
-            'variation': variation,
+            'variation': str(variation),
         }
 
     def get_variation(self, val1, val2):
