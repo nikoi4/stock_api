@@ -1,6 +1,7 @@
 import pytest
 
 from django.contrib.auth.models import User
+from rest_framework import status
 from rest_framework.authtoken import views as auth_views
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APIRequestFactory
@@ -30,7 +31,7 @@ def test_post_register_returns_api_token():
     response = view(request)
 
     assert response.data.get('token')
-    assert response.status_code == 201
+    assert response.status_code == status.HTTP_201_CREATED
 
 
 @pytest.mark.django_db
@@ -53,7 +54,7 @@ def test_invalid_email_post_register():
 
     assert response.exception is True
     assert response.data.get('email', [])[0].code == 'invalid'
-    assert response.status_code == 400
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.django_db
@@ -76,7 +77,7 @@ def test_invalid_method_get_register():
 
     assert response.exception is True
     assert response.data.get('detail').code == 'method_not_allowed'
-    assert response.status_code == 405
+    assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
 
 
 @pytest.mark.django_db
@@ -100,7 +101,7 @@ def test_post_retrieve_api_token_for_existing_user():
     response = view_function(request)
 
     assert response.data.get('token') == str(token)
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
 
 
 @pytest.mark.django_db
@@ -122,7 +123,7 @@ def test_invalid_user_retrieve_api_token_for_non_existing_user():
 
     assert response.exception is True
     assert response.data.get('non_field_errors', [])[0].code == 'authorization'
-    assert response.status_code == 400
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
 @pytest.mark.django_db
@@ -144,4 +145,4 @@ def test_invalid_method_get_retrieve_api_token_returns_error():
 
     assert response.exception is True
     assert response.data.get('detail').code == 'method_not_allowed'
-    assert response.status_code == 405
+    assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
