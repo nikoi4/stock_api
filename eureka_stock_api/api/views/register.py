@@ -27,7 +27,7 @@ class UserView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         # create user
-        logger.info('Registering user {}'.format(serializer.data.username))
+        logger.info('Registering user {}'.format(serializer.data.get('username')))
         user = self.perform_create(serializer)
         # create token for user
         logger.info('Assigning Token to user')
