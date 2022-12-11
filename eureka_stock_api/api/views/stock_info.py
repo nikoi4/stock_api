@@ -1,7 +1,10 @@
+import logging
+
 from rest_framework import status
 from rest_framework.authentication import (
     TokenAuthentication,
 )
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.throttling import UserRateThrottle
@@ -9,6 +12,9 @@ from rest_framework.views import APIView
 
 from api.utils.integrations.alphavantage import get_alphavantage_api_response
 from eureka_stock_api import settings
+
+
+logger = logging.getLogger(__name__)
 
 
 class StockInfo(APIView):
@@ -27,6 +33,10 @@ class StockInfo(APIView):
         size = 'compact'
         api_key = settings.ALPHAVANTAGE_API_TOKEN
 
+        logger.info('Calling alphavantage api {} for symbol --> {}'.format(
+            function,
+            stock_symbol
+        ))
         alphavantage_response = get_alphavantage_api_response(
             function,
             api_key,
@@ -36,19 +46,21 @@ class StockInfo(APIView):
         alphavantage_response_data = alphavantage_response.json()
 
         if 'error' in str(alphavantage_response_data).lower():
+            logger.error(alphavantage_response_data)
             return Response(
-                alphavantage_response.json(),
+                alphavantage_response_data,
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        processed_data = self.process_stock_timeseries(alphavantage_response.json())
+        logger.info('Processing and transforming data into response')
+        processed_data = self.process_stock_timeseries(alphavantage_response_data)
         return Response(data=processed_data, status=status.HTTP_200_OK)
 
     def process_stock_timeseries(self, data):
+        logger.info('Getting Daily time series')
         daily_stock_info = data.get('Time Series (Daily)', {})
         if not daily_stock_info:
-            # TODO replace by exception
-            return {}
+            raise ValidationError(detail='Non valid')
 
         available_days = list(daily_stock_info.keys())
         last_day = max(available_days)
